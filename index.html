@@ -2,478 +2,459 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b1220">
-  <title>NYX Control Center Web v0.2-A</title>
-
-  <style>
-    :root {
-      font-family: system-ui, Segoe UI, Arial;
-      color: #e5eefb;
-      background: #090e19;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0 auto;
-      padding: 22px;
-      max-width: 920px;
-    }
-
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    h1 { font-size: 1.5rem; margin: 0; }
-    h2 { font-size: 1rem; margin: 0 0 14px; }
-    small, .muted { color: #98a9c1; }
-
-    .pill {
-      background: #26344c;
-      border-radius: 30px;
-      padding: 6px 10px;
-      font-size: .8rem;
-    }
-
-    section {
-      background: #121d30;
-      border: 1px solid #293a55;
-      border-radius: 15px;
-      padding: 18px;
-      margin-top: 16px;
-    }
-
-    button, input { font: inherit; }
-
-    button {
-      background: #274e7d;
-      color: white;
-      border: 1px solid #4a719e;
-      padding: 11px 14px;
-      border-radius: 9px;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: .42;
-      cursor: not-allowed;
-    }
-
-    .danger { background: #51343c; }
-
-    .buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 9px;
-      margin-top: 10px;
-    }
-
-    .stat {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 10px 0;
-    }
-
-    .warn { color: #ffc784; }
-
-    input {
-      width: 90px;
-      background: #0b1424;
-      border: 1px solid #435875;
-      color: white;
-      border-radius: 7px;
-      padding: 10px;
-    }
-
-    pre {
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      background: #090f1c;
-      border-radius: 10px;
-      min-height: 180px;
-      max-height: 320px;
-      overflow: auto;
-      padding: 12px;
-      font: 12px/1.6 ui-monospace, Consolas, monospace;
-    }
-
-    .chart {
-      height: 110px;
-      width: 100%;
-      background: #0b1424;
-      border-radius: 9px;
-    }
-
-    footer {
-      margin: 22px 0;
-      color: #91a4bd;
-      font-size: .8rem;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090e19">
+<title>NYX Control Center v0.2-B</title>
+<style>
+:root {
+  font-family:system-ui,Segoe UI,Arial,sans-serif;
+  background:#090e19;
+  color:#e5eefb;
+}
+* { box-sizing:border-box }
+body { max-width:940px;margin:auto;padding:18px }
+header,.stat,.topline {
+  display:flex;align-items:center;justify-content:space-between;gap:12px
+}
+header { margin-bottom:16px }
+h1 { font-size:1.5rem;margin:0 }
+h2 { font-size:1.05rem;margin:0 0 14px }
+h3 { font-size:.92rem }
+small,.muted { color:#98a9c1 }
+section {
+  background:#121d30;border:1px solid #293a55;
+  border-radius:15px;padding:18px;margin:14px 0
+}
+.stat { margin:11px 0 }
+.stat strong { text-align:right }
+.warn { color:#ffc784 }
+.ok { color:#8cddb7 }
+.pill {
+  background:#26344c;padding:7px 11px;border-radius:22px;
+  font-size:.8rem;text-align:center
+}
+.buttons { display:flex;flex-wrap:wrap;gap:9px;margin-top:12px }
+button,input { font:inherit }
+button {
+  background:#274e7d;border:1px solid #4a719e;
+  border-radius:9px;color:white;padding:11px 13px;cursor:pointer
+}
+button:disabled { opacity:.4;cursor:not-allowed }
+.danger { background:#51343c }
+input {
+  width:95px;padding:9px;background:#0b1424;color:white;
+  border:1px solid #435875;border-radius:7px
+}
+pre {
+  background:#090f1c;white-space:pre-wrap;overflow-wrap:anywhere;
+  border-radius:10px;padding:12px;min-height:110px;max-height:280px;
+  overflow:auto;font:12px/1.6 ui-monospace,Consolas,monospace
+}
+.chart { width:100%;height:110px;background:#0b1424;border-radius:9px }
+.notice {
+  border-left:3px solid #ffc784;background:#282638;
+  padding:11px 13px;border-radius:5px;line-height:1.5
+}
+footer { color:#98a9c1;font-size:.8rem;margin:24px 0 }
+</style>
 </head>
-
 <body>
 
-  <header>
-    <div>
-      <h1>NYX / Control Center</h1>
-      <small>Web v0.2-A · laboratório BLE / segurança</small>
-    </div>
-    <span class="pill" id="badge">Desconectado</span>
-  </header>
+<header>
+  <div>
+    <h1>NYX / Control Center</h1>
+    <small>Web v0.2-B · BLE + USB</small>
+  </div>
+  <span class="pill" id="badge">Desconectado</span>
+</header>
 
-  <section>
-    <h2>Dispositivo</h2>
-
-    <div class="stat">
-      <span>Nome</span>
-      <strong id="deviceName">—</strong>
-    </div>
-
-    <div class="stat">
-      <span>Transporte</span>
-      <strong id="transport">Desconectado</strong>
-    </div>
-
-    <div class="stat">
-      <span>Autorização NYX</span>
-      <strong class="warn" id="auth">NÃO AUTENTICADO</strong>
-    </div>
-
-    <div class="stat">
-      <span>Modo</span>
-      <strong class="warn">LEGADO / TESTES</strong>
-    </div>
-
-    <p class="muted" id="securityNote">
-      A versão atual do ESP32 não exige autenticação.
-      Conectar por BLE não autoriza um dispositivo.
-    </p>
-
-    <div class="buttons">
-      <button id="securityInfo">Sobre a futura segurança</button>
-    </div>
-
-    <div class="buttons">
-      <button id="connect">Buscar / Conectar NYX</button>
-      <button id="disconnect" disabled>Desconectar</button>
-    </div>
-
-    <p class="muted" id="support"></p>
-  </section>
-
-  <section>
-    <h2>Comandos de teste</h2>
-
-    <div class="buttons">
-      <button class="cmd" data-cmd="PING" disabled>PING</button>
-      <button class="cmd" data-cmd="STATUS" disabled>STATUS</button>
-      <button class="cmd" data-cmd="START" disabled>START</button>
-      <button class="cmd danger" data-cmd="STOP" disabled>STOP</button>
-    </div>
-
-    <p>
-      <label>
-        Intervalo (ms):
-        <input id="interval" type="number"
-               min="100" max="5000" value="500">
-      </label>
-      <button id="set" disabled>SET</button>
-    </p>
-  </section>
-
-  <section>
-    <h2>STREAM simulado</h2>
-
-    <div class="stat">
-      <span>Último pacote</span>
-      <strong id="last">—</strong>
-    </div>
-
-    <canvas class="chart" id="chart"></canvas>
-
-    <p class="muted">
-      O valor recebido ainda é simulado pelo firmware v0.1.
-    </p>
-  </section>
-
-  <section>
-    <h2>Console</h2>
-
-    <div class="buttons">
-      <button id="clear">Limpar console</button>
-    </div>
-
-    <pre id="console" aria-live="polite"></pre>
-  </section>
-
-  <footer>
+<section>
+  <h2>Dispositivo</h2>
+  <div class="stat"><span>Nome</span><strong id="deviceName">—</strong></div>
+  <div class="stat"><span>Bluetooth</span><strong id="bleState">Desconectado</strong></div>
+  <div class="stat"><span>USB</span><strong id="usbState">Desconectado</strong></div>
+  <div class="stat">
+    <span>Autorização NYX</span>
+    <strong id="authState" class="warn">NÃO AUTENTICADO</strong>
+  </div>
+  <p class="notice">
+    Ambiente de desenvolvimento. O firmware v0.1 ainda não
+    exige autenticação ou criptografia BLE obrigatória.
     Não utilizar para comandos sensíveis.
-    A futura versão segura exigirá pareamento criptografado
-    e autenticação NYX.
-  </footer>
+  </p>
+  <p class="muted" id="support"></p>
+</section>
 
-  <script>
-    // ========================================
-    // NYX-LINK — UUIDs
-    // ========================================
+<section>
+  <h2>Bluetooth LE</h2>
+  <div class="buttons">
+    <button id="connect">Buscar / Conectar NYX</button>
+    <button id="disconnect" disabled>Desconectar</button>
+  </div>
+  <h3>Comandos de teste</h3>
+  <div class="buttons">
+    <button class="cmd" data-cmd="PING" disabled>PING</button>
+    <button class="cmd" data-cmd="STATUS" disabled>STATUS</button>
+    <button class="cmd" data-cmd="START" disabled>START</button>
+    <button class="cmd danger" data-cmd="STOP" disabled>STOP</button>
+  </div>
+  <p>
+    <label>Intervalo (ms):
+      <input id="interval" type="number" min="100" max="5000" value="500">
+    </label>
+    <button id="set" disabled>SET</button>
+  </p>
+  <h3>STREAM simulado</h3>
+  <div class="stat"><span>Último pacote</span><strong id="last">—</strong></div>
+  <canvas id="chart" class="chart"></canvas>
+  <h3>Console BLE</h3>
+  <button id="clearBle">Limpar</button>
+  <pre id="bleConsole" aria-live="polite"></pre>
+</section>
 
-    const SERVICE = '7d2e0001-9f43-4c88-a70e-123456789abc';
-    const RX      = '7d2e0002-9f43-4c88-a70e-123456789abc';
-    const TX      = '7d2e0003-9f43-4c88-a70e-123456789abc';
-    const STREAM  = '7d2e0004-9f43-4c88-a70e-123456789abc';
+<section>
+  <div class="topline">
+    <h2>USB / Web Serial</h2>
+    <span class="pill">NOVO</span>
+  </div>
+  <p class="muted">
+    Use esta seção no Chrome ou Edge do computador.
+    Conecte a porta USB-C que já utilizamos para visualizar
+    o Monitor Serial do Arduino.
+  </p>
+  <p class="notice">
+    Primeiro teste: somente leitura dos diagnósticos existentes.
+    Esta versão ainda NÃO gera, transmite ou salva credenciais.
+  </p>
+  <div class="stat">
+    <span>Porta</span>
+    <strong id="portInfo">Nenhuma porta selecionada</strong>
+  </div>
+  <div class="buttons">
+    <button id="usbConnect">Selecionar porta USB</button>
+    <button id="usbDisconnect" disabled>Fechar porta</button>
+  </div>
+  <h3>Console USB — 115200 baud</h3>
+  <button id="clearUsb">Limpar</button>
+  <pre id="usbConsole" aria-live="polite"></pre>
+</section>
 
-    const $ = id => document.getElementById(id);
+<section>
+  <h2>NYX Security — Plano de provisionamento</h2>
+  <div class="stat">
+    <span>Diagnóstico USB</span>
+    <strong id="usbDiagnostic">Pendente</strong>
+  </div>
+  <div class="stat">
+    <span>Cadastro inicial de credenciais</span>
+    <strong class="warn">Não implementado</strong>
+  </div>
+  <div class="stat">
+    <span>Autenticação de sessão</span>
+    <strong class="warn">Não implementada</strong>
+  </div>
+  <div class="stat">
+    <span>BLE criptografado obrigatório</span>
+    <strong class="warn">Não implementado</strong>
+  </div>
+  <p class="muted">
+    A autenticação só será ativada depois de validarmos o cadastro,
+    a recuperação e a atualização correspondente do firmware.
+  </p>
+</section>
 
-    let device, rx, tx, stream;
-    let connected = false;
-    let values = [];
+<footer>
+  NYX Control Center v0.2-B · Nenhuma credencial pessoal é
+  armazenada ou publicada nesta etapa.
+</footer>
 
-    const enc = new TextEncoder();
-    const dec = new TextDecoder();
+<script>
+// ==========================================
+// NYX-LINK v0.1 — BLE
+// ==========================================
 
-    // ========================================
-    // CONSOLE
-    // ========================================
+const SERVICE = '7d2e0001-9f43-4c88-a70e-123456789abc';
+const RX      = '7d2e0002-9f43-4c88-a70e-123456789abc';
+const TX      = '7d2e0003-9f43-4c88-a70e-123456789abc';
+const STREAM  = '7d2e0004-9f43-4c88-a70e-123456789abc';
 
-    function log(message) {
-      const time = new Date().toLocaleTimeString('pt-BR');
+const $ = id => document.getElementById(id);
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
-      $('console').textContent += `[${time}] ${message}\n`;
-      $('console').scrollTop = $('console').scrollHeight;
+let bleDevice, rx, tx, stream;
+let bleConnected = false;
+let values = [];
+
+function log(target, message) {
+  const time = new Date().toLocaleTimeString('pt-BR');
+  const el = $(target);
+  el.textContent += `[${time}] ${message}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function refreshBadge() {
+  $('badge').textContent =
+    `BLE: ${bleConnected ? 'ON' : 'OFF'} | USB: ${serialPort ? 'ON' : 'OFF'}`;
+}
+
+function bleState(value) {
+  bleConnected = value;
+  $('bleState').textContent = value ? 'Conectado' : 'Desconectado';
+  $('connect').disabled = value;
+  $('disconnect').disabled = !value;
+  document.querySelectorAll('.cmd').forEach(b => b.disabled = !value);
+  $('set').disabled = !value;
+
+  // Esta versão nunca considera a conexão uma autenticação.
+  $('authState').textContent = 'NÃO AUTENTICADO';
+
+  if (!value) rx = tx = stream = null;
+  refreshBadge();
+}
+
+function draw() {
+  const c = $('chart');
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth;
+  const h = c.clientHeight;
+  c.width = w * dpr;
+  c.height = h * dpr;
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.beginPath();
+  ctx.strokeStyle = '#69c6f0';
+  ctx.lineWidth = 2;
+
+  values.forEach((v, i) => {
+    const x = i * w / Math.max(1, values.length - 1);
+    const y = h - 8 - (v / 100) * (h - 16);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+function received(channel, event) {
+  const message = decoder.decode(event.target.value);
+  log('bleConsole', `${channel} ${message}`);
+
+  if (channel === 'STREAM') {
+    $('last').textContent = message;
+    const parts = message.split(',');
+    const value = Number(parts[2]);
+    if (Number.isFinite(value) && parts[2]?.trim() !== '') {
+      values.push(Math.max(0, Math.min(100, value)));
+      if (values.length > 80) values.shift();
+      draw();
     }
+  }
+}
 
-    // ========================================
-    // ESTADO DA CONEXÃO
-    // ========================================
+async function connectBle() {
+  if (!navigator.bluetooth) {
+    log('bleConsole', 'Web Bluetooth não disponível neste navegador.');
+    return;
+  }
 
-    function state(value) {
-      connected = value;
-
-      $('transport').textContent = value
-        ? 'BLE conectado'
-        : 'Desconectado';
-
-      // O firmware atual NÃO possui autenticação.
-      $('auth').textContent = 'NÃO AUTENTICADO';
-
-      $('badge').textContent = value
-        ? 'BLE conectado · não autenticado'
-        : 'Desconectado';
-
-      $('connect').disabled = value;
-      $('disconnect').disabled = !value;
-
-      document.querySelectorAll('.cmd').forEach(button => {
-        button.disabled = !value;
-      });
-
-      $('set').disabled = !value;
-
-      if (!value) {
-        rx = tx = stream = null;
-      }
-    }
-
-    // ========================================
-    // GRÁFICO
-    // ========================================
-
-    function draw() {
-      const canvas = $('chart');
-      const dpr = window.devicePixelRatio || 1;
-      const width = canvas.clientWidth;
-      const height = canvas.clientHeight;
-
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-
-      const ctx = canvas.getContext('2d');
-      ctx.scale(dpr, dpr);
-
-      ctx.strokeStyle = '#69c6f0';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-
-      values.forEach((value, i) => {
-        const x = i * width / Math.max(1, values.length - 1);
-        const y = height - 8 - (value / 100) * (height - 16);
-
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-
-      ctx.stroke();
-    }
-
-    // ========================================
-    // DADOS RECEBIDOS
-    // ========================================
-
-    function received(channel, event) {
-      const message = dec.decode(event.target.value);
-
-      log(`${channel} ${message}`);
-
-      if (channel === 'STREAM') {
-        const parts = message.split(',');
-
-        $('last').textContent = message;
-
-        const value = Number(parts[2]);
-
-        if (Number.isFinite(value)) {
-          values.push(Math.max(0, Math.min(100, value)));
-
-          if (values.length > 80) values.shift();
-
-          draw();
-        }
-      }
-    }
-
-    // ========================================
-    // CONEXÃO WEB BLUETOOTH
-    // ========================================
-
-    async function connect() {
-      if (!navigator.bluetooth) {
-        log('Web Bluetooth indisponível neste navegador.');
-        return;
-      }
-
-      try {
-        log('Abrindo seletor Bluetooth...');
-
-        device = await navigator.bluetooth.requestDevice({
-          filters: [{ name: 'NYX-WEARABLE' }],
-          optionalServices: [SERVICE]
-        });
-
-        device.addEventListener('gattserverdisconnected', () => {
-          state(false);
-          log('BLE desconectado');
-        });
-
-        $('deviceName').textContent = device.name || 'NYX';
-
-        const server = await device.gatt.connect();
-        const service = await server.getPrimaryService(SERVICE);
-
-        rx = await service.getCharacteristic(RX);
-        tx = await service.getCharacteristic(TX);
-        stream = await service.getCharacteristic(STREAM);
-
-        await tx.startNotifications();
-
-        tx.addEventListener('characteristicvaluechanged', event => {
-          received('TX', event);
-        });
-
-        await stream.startNotifications();
-
-        stream.addEventListener('characteristicvaluechanged', event => {
-          received('STREAM', event);
-        });
-
-        state(true);
-
-        log('Conectado; notificações TX e STREAM ativadas.');
-        log('Segurança: modo legado. NÃO autenticado.');
-
-      } catch (error) {
-        state(false);
-        log('Falha: ' + (error.message || error));
-
-        if (device?.gatt?.connected) {
-          device.gatt.disconnect();
-        }
-      }
-    }
-
-    // ========================================
-    // ENVIO DE COMANDOS
-    // ========================================
-
-    async function send(command) {
-      if (!connected || !rx) return;
-
-      try {
-        await rx.writeValue(enc.encode(command));
-        log('RX → ' + command);
-
-      } catch (error) {
-        log('Erro ao enviar ' + command + ': ' + (error.message || error));
-      }
-    }
-
-    // ========================================
-    // EVENTOS DA INTERFACE
-    // ========================================
-
-    $('connect').onclick = connect;
-
-    $('disconnect').onclick = () => {
-      device?.gatt?.disconnect();
-    };
-
-    document.querySelectorAll('.cmd').forEach(button => {
-      button.onclick = () => send(button.dataset.cmd);
+  try {
+    log('bleConsole', 'Abrindo seletor Bluetooth...');
+    bleDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ name:'NYX-WEARABLE' }],
+      optionalServices: [SERVICE]
     });
 
-    $('set').onclick = () => {
-      const interval = Number($('interval').value);
+    bleDevice.addEventListener('gattserverdisconnected', () => {
+      bleState(false);
+      log('bleConsole', 'BLE desconectado.');
+    }, { once:true });
 
-      if (
-        !Number.isInteger(interval) ||
-        interval < 100 ||
-        interval > 5000
-      ) {
-        log('Intervalo permitido: 100 a 5000 ms');
-        return;
+    $('deviceName').textContent = bleDevice.name || 'NYX';
+
+    const server = await bleDevice.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE);
+    rx = await service.getCharacteristic(RX);
+    tx = await service.getCharacteristic(TX);
+    stream = await service.getCharacteristic(STREAM);
+
+    tx.addEventListener('characteristicvaluechanged',
+      event => received('TX', event));
+    stream.addEventListener('characteristicvaluechanged',
+      event => received('STREAM', event));
+
+    await tx.startNotifications();
+    await stream.startNotifications();
+    bleState(true);
+    log('bleConsole', 'Conectado. TX e STREAM ativos. Não autenticado.');
+  } catch (error) {
+    bleState(false);
+    log('bleConsole', 'Erro: ' + (error.message || error));
+    if (bleDevice?.gatt?.connected) bleDevice.gatt.disconnect();
+  }
+}
+
+async function send(command) {
+  if (!bleConnected || !rx) return;
+  try {
+    const payload = encoder.encode(command);
+    if (rx.writeValueWithResponse) {
+      await rx.writeValueWithResponse(payload);
+    } else {
+      await rx.writeValue(payload);
+    }
+    log('bleConsole', 'RX → ' + command);
+  } catch (error) {
+    log('bleConsole', 'Falha no envio: ' + (error.message || error));
+  }
+}
+
+$('connect').onclick = connectBle;
+$('disconnect').onclick = () => bleDevice?.gatt?.disconnect();
+document.querySelectorAll('.cmd').forEach(b => {
+  b.onclick = () => send(b.dataset.cmd);
+});
+$('set').onclick = () => {
+  const n = Number($('interval').value);
+  if (!Number.isInteger(n) || n < 100 || n > 5000) {
+    log('bleConsole', 'Intervalo permitido: 100 a 5000 ms.');
+    return;
+  }
+  send('SET:' + n);
+};
+$('clearBle').onclick = () => $('bleConsole').textContent = '';
+
+// ==========================================
+// NYX USB — WEB SERIAL (DIAGNÓSTICO)
+// ==========================================
+
+let serialPort = null;
+let serialReader = null;
+let usbClosing = false;
+
+function usbState(value) {
+  $('usbState').textContent = value ? 'Porta aberta' : 'Desconectado';
+  $('usbConnect').disabled = value;
+  $('usbDisconnect').disabled = !value;
+  $('portInfo').textContent = value
+    ? 'USB conectado · 115200 baud'
+    : 'Nenhuma porta aberta';
+  $('usbDiagnostic').textContent = value ? 'Porta aberta' : 'Pendente';
+  refreshBadge();
+}
+
+async function connectUsb() {
+  if (!navigator.serial) {
+    log('usbConsole',
+      'Web Serial indisponível. Utilize Chrome/Edge desktop em HTTPS.');
+    return;
+  }
+
+  let selectedPort = null;
+
+  try {
+    // Precisa ser iniciado pelo clique do usuário.
+    selectedPort = await navigator.serial.requestPort();
+    await selectedPort.open({ baudRate:115200 });
+    serialPort = selectedPort;
+    usbClosing = false;
+    usbState(true);
+    log('usbConsole', 'Porta USB aberta. Aguardando dados do ESP32...');
+    log('usbConsole', 'Se necessário, pressione RESET uma vez na placa.');
+    readUsb(serialPort);
+  } catch (error) {
+    log('usbConsole', 'Erro USB: ' + (error.message || error));
+    if (selectedPort && selectedPort !== serialPort) {
+      try { await selectedPort.close(); } catch (_) {}
+    }
+    usbState(false);
+  }
+}
+
+async function readUsb(port) {
+  try {
+    while (port.readable && !usbClosing) {
+      const reader = port.readable.getReader();
+      serialReader = reader;
+
+      try {
+        while (!usbClosing) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) {
+            // TextDecoder streaming evita quebrar caracteres entre pacotes.
+            const text = decoder.decode(value, { stream:true });
+            $('usbConsole').textContent += text;
+            $('usbConsole').scrollTop = $('usbConsole').scrollHeight;
+          }
+        }
+      } finally {
+        reader.releaseLock();
+        if (serialReader === reader) serialReader = null;
       }
 
-      send('SET:' + interval);
-    };
+      if (usbClosing) break;
+      // Um erro temporário de leitura não deve criar um loop infinito.
+      break;
+    }
+  } catch (error) {
+    if (!usbClosing) {
+      log('usbConsole', 'Leitura USB interrompida: ' +
+        (error.message || error));
+    }
+  } finally {
+    if (serialPort === port) {
+      usbClosing = true;
+      try { await port.close(); } catch (e) {
+        log('usbConsole', 'Erro ao fechar porta: ' + e.message);
+      }
+      serialPort = null;
+      usbState(false);
+      log('usbConsole', 'Porta USB fechada.');
+    }
+  }
+}
 
-    $('clear').onclick = () => {
-      $('console').textContent = '';
-    };
+async function disconnectUsb() {
+  if (!serialPort) return;
+  usbClosing = true;
+  $('usbDisconnect').disabled = true;
 
-    $('securityInfo').onclick = () => {
-      alert(
-        'NYX Security v0.2-A\n\n' +
-        'Este painel apenas prepara a interface de segurança.\n\n' +
-        'Ainda NÃO implementa criptografia obrigatória ' +
-        'nem autenticação.\n\n' +
-        'Próxima etapa: cadastro físico via USB, ' +
-        'pareamento BLE protegido e autorização da sessão.\n\n' +
-        'Nunca coloque chaves secretas no HTML público.'
-      );
-    };
+  try {
+    if (serialReader) await serialReader.cancel();
+  } catch (error) {
+    log('usbConsole', 'Erro ao cancelar leitura: ' + error.message);
+  }
+  // readUsb libera o reader e fecha a porta.
+}
 
-    $('support').textContent = navigator.bluetooth
-      ? 'Web Bluetooth disponível neste navegador.'
-      : 'Web Bluetooth indisponível. Utilize Chrome Android ou Chrome/Edge desktop em HTTPS ou localhost.';
+$('usbConnect').onclick = connectUsb;
+$('usbDisconnect').onclick = disconnectUsb;
+$('clearUsb').onclick = () => $('usbConsole').textContent = '';
 
-    window.addEventListener('resize', draw);
+if (navigator.serial) {
+  navigator.serial.addEventListener('disconnect', event => {
+    if (serialPort && event.target === serialPort) {
+      usbClosing = true;
+      if (serialReader) serialReader.cancel().catch(() => {});
+    }
+  });
+}
 
-    // ========================================
-    // INICIALIZAÇÃO
-    // ========================================
+// ==========================================
+// INICIALIZAÇÃO
+// ==========================================
 
-    draw();
+$('support').textContent =
+  `Web Bluetooth: ${navigator.bluetooth ? 'disponível' : 'indisponível'} · ` +
+  `Web Serial: ${navigator.serial ? 'disponível' : 'indisponível'}`;
 
-    log('Painel NYX v0.2-A pronto.');
-    log('Firmware compatível: NYX-Link v0.1.');
-    log('Segurança ainda NÃO implementada.');
-  </script>
+window.addEventListener('resize', draw);
+draw();
+refreshBadge();
 
+log('bleConsole', 'NYX v0.2-B pronta. Firmware BLE: NYX-Link v0.1.');
+log('usbConsole', 'Painel USB pronto. Nenhum segredo será cadastrado nesta versão.');
+</script>
 </body>
 </html>
