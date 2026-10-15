@@ -1,4 +1,479 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#0b1220"><title>NYX Control Center Web v0.1</title><style>:root{font-family:system-ui,Segoe UI,Arial;color:#e5eefb;background:#090e19}*{box-sizing:border-box}body{margin:0;padding:22px;max-width:920px;margin-inline:auto}header{display:flex;align-items:center;justify-content:space-between;gap:10px}h1{font-size:1.5rem;margin:0}small,.muted{color:#98a9c1}.pill{background:#26344c;border-radius:30px;padding:6px 10px;font-size:.8rem}section{background:#121d30;border:1px solid #293a55;border-radius:15px;padding:18px;margin-top:16px}h2{font-size:1rem;margin:0 0 14px}button,input{font:inherit}button{background:#274e7d;color:white;border:1px solid #4a719e;padding:11px 14px;border-radius:9px;cursor:pointer}button:disabled{opacity:.42;cursor:not-allowed}.danger{background:#51343c}.buttons{display:flex;flex-wrap:wrap;gap:9px}.stat{display:flex;justify-content:space-between;gap:12px;margin:10px 0}.warn{color:#ffc784}input{width:90px;background:#0b1424;border:1px solid #435875;color:white;border-radius:7px;padding:10px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#090f1c;border-radius:10px;min-height:180px;max-height:320px;overflow:auto;padding:12px;font:12px/1.6 ui-monospace,Consolas,monospace}.chart{height:110px;width:100%;background:#0b1424;border-radius:9px}footer{margin:22px 0;color:#91a4bd;font-size:.8rem}</style></head><body><header><div><h1>NYX / Control Center</h1><small>Web v0.1 · laboratório BLE</small></div><span class="pill" id="badge">Desconectado</span></header><section><h2>Dispositivo</h2><div class="stat"><span>Nome</span><strong id="deviceName">—</strong></div><div class="stat"><span>Segurança</span><strong class="warn">LEGADO — sem autenticação</strong></div><div class="buttons"><button id="connect">Buscar / Conectar NYX</button><button id="disconnect" disabled>Desconectar</button></div><p class="muted" id="support"></p></section><section><h2>Comandos de teste</h2><div class="buttons"><button class="cmd" data-cmd="PING" disabled>PING</button><button class="cmd" data-cmd="STATUS" disabled>STATUS</button><button class="cmd" data-cmd="START" disabled>START</button><button class="cmd danger" data-cmd="STOP" disabled>STOP</button></div><p><label>Intervalo (ms): <input id="interval" type="number" min="100" max="5000" value="500"></label> <button id="set" disabled>SET</button></p></section><section><h2>STREAM simulado</h2><div class="stat"><span>Último pacote</span><strong id="last">—</strong></div><canvas class="chart" id="chart"></canvas><p class="muted">O valor recebido ainda é simulado pelo firmware v0.1.</p></section><section><h2>Console</h2><div class="buttons"><button id="clear">Limpar console</button></div><pre id="console" aria-live="polite"></pre></section><footer>Não utilizar para comandos sensíveis. A futura versão segura exigirá pareamento criptografado e autenticação NYX.</footer><script>
-const SERVICE='7d2e0001-9f43-4c88-a70e-123456789abc',RX='7d2e0002-9f43-4c88-a70e-123456789abc',TX='7d2e0003-9f43-4c88-a70e-123456789abc',STREAM='7d2e0004-9f43-4c88-a70e-123456789abc';
-const $=id=>document.getElementById(id);let device,rx,tx,stream,connected=false;const enc=new TextEncoder(),dec=new TextDecoder();let values=[];function log(s){const t=new Date().toLocaleTimeString('pt-BR');$('console').textContent+=`[${t}] ${s}\n`;$('console').scrollTop=$('console').scrollHeight}function state(v){connected=v;$('badge').textContent=v?'BLE conectado · não autenticado':'Desconectado';$('connect').disabled=v;$('disconnect').disabled=!v;document.querySelectorAll('.cmd').forEach(b=>b.disabled=!v);$('set').disabled=!v;if(!v){rx=tx=stream=null}}function draw(){let c=$('chart'),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;let ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.strokeStyle='#69c6f0';ctx.lineWidth=2;ctx.beginPath();values.forEach((v,i)=>{let x=i*w/Math.max(1,values.length-1),y=h-8-(v/100)*(h-16);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}function received(prefix,e){let s=dec.decode(e.target.value);log(`${prefix} ${s}`);if(prefix==='STREAM'){let a=s.split(',');$('last').textContent=s;let n=Number(a[2]);if(Number.isFinite(n)){values.push(Math.max(0,Math.min(100,n)));if(values.length>80)values.shift();draw()}}}async function connect(){if(!navigator.bluetooth){log('Web Bluetooth indisponível neste navegador. Use Chrome no Android ou Chrome/Edge no desktop em HTTPS/localhost.');return}try{log('Abrindo seletor Bluetooth...');device=await navigator.bluetooth.requestDevice({filters:[{name:'NYX-WEARABLE'}],optionalServices:[SERVICE]});device.addEventListener('gattserverdisconnected',()=>{state(false);log('BLE desconectado')});$('deviceName').textContent=device.name||'NYX';let server=await device.gatt.connect();let service=await server.getPrimaryService(SERVICE);rx=await service.getCharacteristic(RX);tx=await service.getCharacteristic(TX);stream=await service.getCharacteristic(STREAM);await tx.startNotifications();tx.addEventListener('characteristicvaluechanged',e=>received('TX',e));await stream.startNotifications();stream.addEventListener('characteristicvaluechanged',e=>received('STREAM',e));state(true);log('Conectado; notificações TX e STREAM ativadas. Segurança: modo legado.')}catch(e){state(false);log('Falha: '+(e.message||e));if(device?.gatt?.connected)device.gatt.disconnect()}}async function send(s){if(!connected||!rx)return;try{await rx.writeValue(enc.encode(s));log('RX → '+s)}catch(e){log('Erro ao enviar '+s+': '+(e.message||e))}}$('connect').onclick=connect;$('disconnect').onclick=()=>device?.gatt?.disconnect();document.querySelectorAll('.cmd').forEach(b=>b.onclick=()=>send(b.dataset.cmd));$('set').onclick=()=>{let n=Number($('interval').value);if(!Number.isInteger(n)||n<100||n>5000){log('Intervalo permitido: 100 a 5000 ms');return}send('SET:'+n)};$('clear').onclick=()=>$('console').textContent='';$('support').textContent=navigator.bluetooth?'Web Bluetooth disponível neste navegador.':'Web Bluetooth não disponível aqui. Abra esta página no Chrome Android ou Chrome/Edge desktop, em HTTPS ou localhost.';window.addEventListener('resize',draw);draw();log('Interface pronta. Firmware compatível: NYX-Link v0.1.');
-</script></body></html>
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <title>NYX Control Center Web v0.2-A</title>
+
+  <style>
+    :root {
+      font-family: system-ui, Segoe UI, Arial;
+      color: #e5eefb;
+      background: #090e19;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0 auto;
+      padding: 22px;
+      max-width: 920px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    h1 { font-size: 1.5rem; margin: 0; }
+    h2 { font-size: 1rem; margin: 0 0 14px; }
+    small, .muted { color: #98a9c1; }
+
+    .pill {
+      background: #26344c;
+      border-radius: 30px;
+      padding: 6px 10px;
+      font-size: .8rem;
+    }
+
+    section {
+      background: #121d30;
+      border: 1px solid #293a55;
+      border-radius: 15px;
+      padding: 18px;
+      margin-top: 16px;
+    }
+
+    button, input { font: inherit; }
+
+    button {
+      background: #274e7d;
+      color: white;
+      border: 1px solid #4a719e;
+      padding: 11px 14px;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .42;
+      cursor: not-allowed;
+    }
+
+    .danger { background: #51343c; }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 10px;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 10px 0;
+    }
+
+    .warn { color: #ffc784; }
+
+    input {
+      width: 90px;
+      background: #0b1424;
+      border: 1px solid #435875;
+      color: white;
+      border-radius: 7px;
+      padding: 10px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #090f1c;
+      border-radius: 10px;
+      min-height: 180px;
+      max-height: 320px;
+      overflow: auto;
+      padding: 12px;
+      font: 12px/1.6 ui-monospace, Consolas, monospace;
+    }
+
+    .chart {
+      height: 110px;
+      width: 100%;
+      background: #0b1424;
+      border-radius: 9px;
+    }
+
+    footer {
+      margin: 22px 0;
+      color: #91a4bd;
+      font-size: .8rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div>
+      <h1>NYX / Control Center</h1>
+      <small>Web v0.2-A · laboratório BLE / segurança</small>
+    </div>
+    <span class="pill" id="badge">Desconectado</span>
+  </header>
+
+  <section>
+    <h2>Dispositivo</h2>
+
+    <div class="stat">
+      <span>Nome</span>
+      <strong id="deviceName">—</strong>
+    </div>
+
+    <div class="stat">
+      <span>Transporte</span>
+      <strong id="transport">Desconectado</strong>
+    </div>
+
+    <div class="stat">
+      <span>Autorização NYX</span>
+      <strong class="warn" id="auth">NÃO AUTENTICADO</strong>
+    </div>
+
+    <div class="stat">
+      <span>Modo</span>
+      <strong class="warn">LEGADO / TESTES</strong>
+    </div>
+
+    <p class="muted" id="securityNote">
+      A versão atual do ESP32 não exige autenticação.
+      Conectar por BLE não autoriza um dispositivo.
+    </p>
+
+    <div class="buttons">
+      <button id="securityInfo">Sobre a futura segurança</button>
+    </div>
+
+    <div class="buttons">
+      <button id="connect">Buscar / Conectar NYX</button>
+      <button id="disconnect" disabled>Desconectar</button>
+    </div>
+
+    <p class="muted" id="support"></p>
+  </section>
+
+  <section>
+    <h2>Comandos de teste</h2>
+
+    <div class="buttons">
+      <button class="cmd" data-cmd="PING" disabled>PING</button>
+      <button class="cmd" data-cmd="STATUS" disabled>STATUS</button>
+      <button class="cmd" data-cmd="START" disabled>START</button>
+      <button class="cmd danger" data-cmd="STOP" disabled>STOP</button>
+    </div>
+
+    <p>
+      <label>
+        Intervalo (ms):
+        <input id="interval" type="number"
+               min="100" max="5000" value="500">
+      </label>
+      <button id="set" disabled>SET</button>
+    </p>
+  </section>
+
+  <section>
+    <h2>STREAM simulado</h2>
+
+    <div class="stat">
+      <span>Último pacote</span>
+      <strong id="last">—</strong>
+    </div>
+
+    <canvas class="chart" id="chart"></canvas>
+
+    <p class="muted">
+      O valor recebido ainda é simulado pelo firmware v0.1.
+    </p>
+  </section>
+
+  <section>
+    <h2>Console</h2>
+
+    <div class="buttons">
+      <button id="clear">Limpar console</button>
+    </div>
+
+    <pre id="console" aria-live="polite"></pre>
+  </section>
+
+  <footer>
+    Não utilizar para comandos sensíveis.
+    A futura versão segura exigirá pareamento criptografado
+    e autenticação NYX.
+  </footer>
+
+  <script>
+    // ========================================
+    // NYX-LINK — UUIDs
+    // ========================================
+
+    const SERVICE = '7d2e0001-9f43-4c88-a70e-123456789abc';
+    const RX      = '7d2e0002-9f43-4c88-a70e-123456789abc';
+    const TX      = '7d2e0003-9f43-4c88-a70e-123456789abc';
+    const STREAM  = '7d2e0004-9f43-4c88-a70e-123456789abc';
+
+    const $ = id => document.getElementById(id);
+
+    let device, rx, tx, stream;
+    let connected = false;
+    let values = [];
+
+    const enc = new TextEncoder();
+    const dec = new TextDecoder();
+
+    // ========================================
+    // CONSOLE
+    // ========================================
+
+    function log(message) {
+      const time = new Date().toLocaleTimeString('pt-BR');
+
+      $('console').textContent += `[${time}] ${message}\n`;
+      $('console').scrollTop = $('console').scrollHeight;
+    }
+
+    // ========================================
+    // ESTADO DA CONEXÃO
+    // ========================================
+
+    function state(value) {
+      connected = value;
+
+      $('transport').textContent = value
+        ? 'BLE conectado'
+        : 'Desconectado';
+
+      // O firmware atual NÃO possui autenticação.
+      $('auth').textContent = 'NÃO AUTENTICADO';
+
+      $('badge').textContent = value
+        ? 'BLE conectado · não autenticado'
+        : 'Desconectado';
+
+      $('connect').disabled = value;
+      $('disconnect').disabled = !value;
+
+      document.querySelectorAll('.cmd').forEach(button => {
+        button.disabled = !value;
+      });
+
+      $('set').disabled = !value;
+
+      if (!value) {
+        rx = tx = stream = null;
+      }
+    }
+
+    // ========================================
+    // GRÁFICO
+    // ========================================
+
+    function draw() {
+      const canvas = $('chart');
+      const dpr = window.devicePixelRatio || 1;
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      ctx.strokeStyle = '#69c6f0';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      values.forEach((value, i) => {
+        const x = i * width / Math.max(1, values.length - 1);
+        const y = height - 8 - (value / 100) * (height - 16);
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+
+      ctx.stroke();
+    }
+
+    // ========================================
+    // DADOS RECEBIDOS
+    // ========================================
+
+    function received(channel, event) {
+      const message = dec.decode(event.target.value);
+
+      log(`${channel} ${message}`);
+
+      if (channel === 'STREAM') {
+        const parts = message.split(',');
+
+        $('last').textContent = message;
+
+        const value = Number(parts[2]);
+
+        if (Number.isFinite(value)) {
+          values.push(Math.max(0, Math.min(100, value)));
+
+          if (values.length > 80) values.shift();
+
+          draw();
+        }
+      }
+    }
+
+    // ========================================
+    // CONEXÃO WEB BLUETOOTH
+    // ========================================
+
+    async function connect() {
+      if (!navigator.bluetooth) {
+        log('Web Bluetooth indisponível neste navegador.');
+        return;
+      }
+
+      try {
+        log('Abrindo seletor Bluetooth...');
+
+        device = await navigator.bluetooth.requestDevice({
+          filters: [{ name: 'NYX-WEARABLE' }],
+          optionalServices: [SERVICE]
+        });
+
+        device.addEventListener('gattserverdisconnected', () => {
+          state(false);
+          log('BLE desconectado');
+        });
+
+        $('deviceName').textContent = device.name || 'NYX';
+
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE);
+
+        rx = await service.getCharacteristic(RX);
+        tx = await service.getCharacteristic(TX);
+        stream = await service.getCharacteristic(STREAM);
+
+        await tx.startNotifications();
+
+        tx.addEventListener('characteristicvaluechanged', event => {
+          received('TX', event);
+        });
+
+        await stream.startNotifications();
+
+        stream.addEventListener('characteristicvaluechanged', event => {
+          received('STREAM', event);
+        });
+
+        state(true);
+
+        log('Conectado; notificações TX e STREAM ativadas.');
+        log('Segurança: modo legado. NÃO autenticado.');
+
+      } catch (error) {
+        state(false);
+        log('Falha: ' + (error.message || error));
+
+        if (device?.gatt?.connected) {
+          device.gatt.disconnect();
+        }
+      }
+    }
+
+    // ========================================
+    // ENVIO DE COMANDOS
+    // ========================================
+
+    async function send(command) {
+      if (!connected || !rx) return;
+
+      try {
+        await rx.writeValue(enc.encode(command));
+        log('RX → ' + command);
+
+      } catch (error) {
+        log('Erro ao enviar ' + command + ': ' + (error.message || error));
+      }
+    }
+
+    // ========================================
+    // EVENTOS DA INTERFACE
+    // ========================================
+
+    $('connect').onclick = connect;
+
+    $('disconnect').onclick = () => {
+      device?.gatt?.disconnect();
+    };
+
+    document.querySelectorAll('.cmd').forEach(button => {
+      button.onclick = () => send(button.dataset.cmd);
+    });
+
+    $('set').onclick = () => {
+      const interval = Number($('interval').value);
+
+      if (
+        !Number.isInteger(interval) ||
+        interval < 100 ||
+        interval > 5000
+      ) {
+        log('Intervalo permitido: 100 a 5000 ms');
+        return;
+      }
+
+      send('SET:' + interval);
+    };
+
+    $('clear').onclick = () => {
+      $('console').textContent = '';
+    };
+
+    $('securityInfo').onclick = () => {
+      alert(
+        'NYX Security v0.2-A\n\n' +
+        'Este painel apenas prepara a interface de segurança.\n\n' +
+        'Ainda NÃO implementa criptografia obrigatória ' +
+        'nem autenticação.\n\n' +
+        'Próxima etapa: cadastro físico via USB, ' +
+        'pareamento BLE protegido e autorização da sessão.\n\n' +
+        'Nunca coloque chaves secretas no HTML público.'
+      );
+    };
+
+    $('support').textContent = navigator.bluetooth
+      ? 'Web Bluetooth disponível neste navegador.'
+      : 'Web Bluetooth indisponível. Utilize Chrome Android ou Chrome/Edge desktop em HTTPS ou localhost.';
+
+    window.addEventListener('resize', draw);
+
+    // ========================================
+    // INICIALIZAÇÃO
+    // ========================================
+
+    draw();
+
+    log('Painel NYX v0.2-A pronto.');
+    log('Firmware compatível: NYX-Link v0.1.');
+    log('Segurança ainda NÃO implementada.');
+  </script>
+
+</body>
+</html>
